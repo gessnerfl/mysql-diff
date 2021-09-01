@@ -1,4 +1,4 @@
-from mysql.connector import connect, Error, connection
+from mysql.connector import connect, connection
 from config.model import DbConnectionParameters
 from .model import *
 from typing import List
@@ -10,12 +10,9 @@ class MetaDataProvider:
     def __init__(self, con: connection.MySQLConnection):
         self.__connection = con
 
-    def provide(self) -> MetaDataCatalog:
+    def provide(self) -> List[Schema]:
         schemas = self.__get_schemas()
-        tables = self.__get_tables()
-        views = self.__get_views()
-        routines = self.__get_routines()
-        return MetaDataCatalog(schemas, tables, views, routines)
+        return [self.__map_schema(s) for s in schemas]
 
     def __get_schemas(self) -> List[SchemaMetaData]:
         with self.__connection.cursor() as cursor:
@@ -28,18 +25,24 @@ class MetaDataProvider:
             result = cursor.fetchall()
             return [SchemaMetaData(i[0], i[1], i[2]) for i in result]
 
-    def __get_tables(self) -> List[TableMetaData]:
-        tables = self.__get_table_meta_data()
+    def __map_schema(self, meta_data: SchemaMetaData) -> Schema:
+        tables = self.__get_tables_of_schema(meta_data.name)
+        views = self.__get_views_of_schema(meta_data.name)
+        routines = self.__get_routines_of_schema(meta_data.name)
+        return Schema(meta_data, tables, views, routines)
 
-        for t in tables:
-            t.columns = self.__get_columns_of_table(t.schema, t.name)
-            t.key_column_usages = self.__get_key_column_usage_of_table(t.schema, t.name)
-            t.referential_constraints = self.__get_referential_constraints_of_table(t.schema, t.name)
-            t.indices = self.__get_indices_of_table(t.schema, t.name)
+    def __get_tables_of_schema(self, schema: str) -> List[Table]:
+        tables = self.__get_table_meta_data(schema)
+        return [self.__map_table(t) for t in tables]
 
-        return tables
+    def __map_table(self, meta: TableMetaData) -> Table:
+        columns = self.__get_columns_of_table(meta.schema, meta.name)
+        key_column_usages = self.__get_key_column_usage_of_table(meta.schema, meta.name)
+        referential_constraints = self.__get_referential_constraints_of_table(meta.schema, meta.name)
+        indices = self.__get_indices_of_table(meta.schema, meta.name)
+        return Table(meta, columns, key_column_usages, referential_constraints, indices)
 
-    def __get_table_meta_data(self) -> List[TableMetaData]:
+    def __get_table_meta_data(self, schema: str) -> List[TableMetaData]:
         with self.__connection.cursor() as cursor:
             query = """
             SELECT TABLE_SCHEMA,
@@ -52,9 +55,9 @@ class MetaDataProvider:
                    CREATE_OPTIONS, 
                    TABLE_COMMENT 
             FROM information_schema.TABLES t 
-            WHERE TABLE_SCHEMA {} AND TABLE_TYPE = 'BASE TABLE';
+            WHERE TABLE_SCHEMA = '{}' AND TABLE_TYPE = 'BASE TABLE';
             """
-            cursor.execute(query.format(schema_filter))
+            cursor.execute(query.format(schema))
             result = cursor.fetchall()
             return [TableMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8]) for i in result]
 
@@ -85,7 +88,7 @@ class MetaDataProvider:
             cursor.execute(query.format(schema, table))
             result = cursor.fetchall()
             return [ColumnMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11], i[12],
-                                    i[13], i[14], i[15], i[16], i[17]) for i in result]
+                                   i[13], i[14], i[15], i[16], i[17]) for i in result]
 
     def __get_key_column_usage_of_table(self, schema: str, table: str) -> List[KeyColumnUsage]:
         with self.__connection.cursor() as cursor:
@@ -141,7 +144,7 @@ class MetaDataProvider:
             result = cursor.fetchall()
             return [Index(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11]) for i in result]
 
-    def __get_views(self) -> List[ViewMetaData]:
+    def __get_views_of_schema(self, schema: str) -> List[View]:
         with self.__connection.cursor() as cursor:
             query = """
             SELECT TABLE_SCHEMA,
@@ -154,21 +157,21 @@ class MetaDataProvider:
                    CHARACTER_SET_CLIENT, 
                    COLLATION_CONNECTION 
             FROM information_schema.VIEWS
-            WHERE TABLE_SCHEMA {};
+            WHERE TABLE_SCHEMA = '{}';
             """
-            cursor.execute(query.format(schema_filter))
+            cursor.execute(query.format(schema))
             result = cursor.fetchall()
-            return [ViewMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8]) for i in result]
+            return [View(ViewMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8])) for i in result]
 
-    def __get_routines(self) -> List[RoutineMetaData]:
-        routines = self.__get_meta_data_of_routines()
+    def __get_routines_of_schema(self, schema: str) -> List[Routine]:
+        routines = self.__get_meta_data_of_routines(schema)
+        return [self.__map_routine(r) for r in routines]
 
-        for r in routines:
-            r.parameters = self.__get_parameters_of_routines(r.schema, r.name)
+    def __map_routine(self, meta_data: RoutineMetaData) -> Routine:
+        parameters = self.__get_parameters_of_routines(meta_data.schema, meta_data.name)
+        return Routine(meta_data, parameters)
 
-        return routines
-
-    def __get_meta_data_of_routines(self) -> List[RoutineMetaData]:
+    def __get_meta_data_of_routines(self, schema: str) -> List[RoutineMetaData]:
         with self.__connection.cursor() as cursor:
             query = """
             SELECT ROUTINE_SCHEMA,
@@ -199,9 +202,9 @@ class MetaDataProvider:
                    COLLATION_CONNECTION,
                    DATABASE_COLLATION
             FROM information_schema.ROUTINES
-            WHERE ROUTINE_SCHEMA {};
+            WHERE ROUTINE_SCHEMA = '{}';
             """
-            cursor.execute(query.format(schema_filter))
+            cursor.execute(query.format(schema))
             result = cursor.fetchall()
             return [RoutineMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11], i[12],
                                     i[13], i[14], i[15], i[16], i[17], i[18], i[19], i[20], i[21], i[22], i[23], i[24],
@@ -240,7 +243,7 @@ class MetaDataProviderFactory:
                                     password=self.params.password)
         return MetaDataProvider(self.__connection)
 
-    def __exit__(self, type, value, tb):
+    def __exit__(self, t, value, tb):
         self.__connection.close()
 
 

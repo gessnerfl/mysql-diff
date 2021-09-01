@@ -2,6 +2,10 @@ from typing import List
 import json
 
 
+def to_json(o):
+    return o.to_dict()
+
+
 class MetaData:
     def __init__(self):
         pass
@@ -68,7 +72,16 @@ class RoutineMetaData(MetaData):
         self.character_set_client = character_set_client
         self.collation_connection = collation_connection
         self.database_collation = database_collation
-        self.parameters = []
+
+    def to_dict(self):
+        return self.__dict__
+
+
+class Routine(MetaData):
+    def __init__(self, meta_data: RoutineMetaData, parameters: List[RoutineParameter]):
+        MetaData.__init__(self)
+        self.meta_data = meta_data
+        self.parameters = parameters
 
     def to_dict(self):
         return self.__dict__
@@ -87,6 +100,15 @@ class ViewMetaData(MetaData):
         self.security_type = security_type
         self.character_set_client = character_set_client
         self.collation_connection = collation_connection
+
+    def to_dict(self):
+        return self.__dict__
+
+
+class View(MetaData):
+    def __init__(self, meta_data: ViewMetaData):
+        MetaData.__init__(self)
+        self.meta_data = meta_data
 
     def to_dict(self):
         return self.__dict__
@@ -186,10 +208,20 @@ class TableMetaData(MetaData):
         self.table_collation = table_collation
         self.create_option = create_option
         self.table_comment = table_comment
-        self.columns = []
-        self.key_column_usages = []
-        self.referential_constraints = []
-        self.indices = []
+
+    def to_dict(self):
+        return self.__dict__
+
+
+class Table(MetaData):
+    def __init__(self, meta_data: TableMetaData, columns: List[ColumnMetaData], key_column_usages: List[KeyColumnUsage],
+                 referential_constraints: List[ReferentialConstraint], indices: List[Index]):
+        MetaData.__init__(self)
+        self.meta_data = meta_data
+        self.columns = columns
+        self.key_column_usages = key_column_usages
+        self.referential_constraints = referential_constraints
+        self.indices = indices
 
     def to_dict(self):
         return self.__dict__
@@ -206,21 +238,20 @@ class SchemaMetaData(MetaData):
         return self.__dict__
 
 
-def to_json(o):
-    return o.to_dict()
-
-
-class MetaDataCatalog(MetaData):
-    def __init__(self, schemas: List[SchemaMetaData], tables: List[TableMetaData], views: List[ViewMetaData],
-                 routines: List[RoutineMetaData]):
+class Schema(MetaData):
+    def __init__(self, meta_data: SchemaMetaData, tables: List[Table], views: List[View],
+                 routines: List[Routine]):
         MetaData.__init__(self)
-        self.schemas = schemas
+        self.meta_data = meta_data
         self.tables = tables
         self.views = views
         self.routines = routines
 
     def __str__(self) -> str:
         return json.dumps(self.__dict__, indent=3, default=to_json)
+
+    def __repr__(self):
+        return self.__str__()
 
     def to_dict(self):
         return self.__dict__
