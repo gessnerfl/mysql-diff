@@ -2,6 +2,7 @@ from mysql.connector import connect, connection
 from config.model import DbConnectionParameters
 from .model import *
 from typing import List
+from typing import Dict
 
 schema_filter = "NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys')"
 
@@ -10,9 +11,9 @@ class MetaDataProvider:
     def __init__(self, con: connection.MySQLConnection):
         self.__connection = con
 
-    def provide(self) -> List[Schema]:
+    def provide(self) -> Dict[str, Schema]:
         schemas = self.__get_schemas()
-        return [self.__map_schema(s) for s in schemas]
+        return {s.name: self.__map_schema(s) for s in schemas}
 
     def __get_schemas(self) -> List[SchemaMetaData]:
         with self.__connection.cursor() as cursor:
@@ -31,9 +32,9 @@ class MetaDataProvider:
         routines = self.__get_routines_of_schema(meta_data.name)
         return Schema(meta_data, tables, views, routines)
 
-    def __get_tables_of_schema(self, schema: str) -> List[Table]:
+    def __get_tables_of_schema(self, schema: str) -> Dict[str, Table]:
         tables = self.__get_table_meta_data(schema)
-        return [self.__map_table(t) for t in tables]
+        return {t.name: self.__map_table(t) for t in tables}
 
     def __map_table(self, meta: TableMetaData) -> Table:
         columns = self.__get_columns_of_table(meta.schema, meta.name)
@@ -61,7 +62,7 @@ class MetaDataProvider:
             result = cursor.fetchall()
             return [TableMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8]) for i in result]
 
-    def __get_columns_of_table(self, schema: str, table: str) -> List[ColumnMetaData]:
+    def __get_columns_of_table(self, schema: str, table: str) -> Dict[str, ColumnMetaData]:
         with self.__connection.cursor() as cursor:
             query = """
             SELECT COLUMN_NAME, 
@@ -87,10 +88,10 @@ class MetaDataProvider:
             """
             cursor.execute(query.format(schema, table))
             result = cursor.fetchall()
-            return [ColumnMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11], i[12],
-                                   i[13], i[14], i[15], i[16], i[17]) for i in result]
+            return {i[0]: ColumnMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11],
+                                         i[12], i[13], i[14], i[15], i[16], i[17]) for i in result}
 
-    def __get_key_column_usage_of_table(self, schema: str, table: str) -> List[KeyColumnUsage]:
+    def __get_key_column_usage_of_table(self, schema: str, table: str) -> Dict[str, KeyColumnUsage]:
         with self.__connection.cursor() as cursor:
             query = """
             SELECT COLUMN_NAME, 
@@ -104,9 +105,9 @@ class MetaDataProvider:
             """
             cursor.execute(query.format(schema, table))
             result = cursor.fetchall()
-            return [KeyColumnUsage(i[0], i[1], i[2], i[3], i[4], i[5]) for i in result]
+            return {i[0]: KeyColumnUsage(i[0], i[1], i[2], i[3], i[4], i[5]) for i in result}
 
-    def __get_referential_constraints_of_table(self, schema: str, table: str) -> List[ReferentialConstraint]:
+    def __get_referential_constraints_of_table(self, schema: str, table: str) -> Dict[str, ReferentialConstraint]:
         with self.__connection.cursor() as cursor:
             query = """
             SELECT CONSTRAINT_NAME, 
@@ -120,9 +121,9 @@ class MetaDataProvider:
             """
             cursor.execute(query.format(schema, table))
             result = cursor.fetchall()
-            return [ReferentialConstraint(i[0], i[1], i[2], i[3], i[4], i[5]) for i in result]
+            return {i[0]: ReferentialConstraint(i[0], i[1], i[2], i[3], i[4], i[5]) for i in result}
 
-    def __get_indices_of_table(self, schema: str, table: str) -> List[Index]:
+    def __get_indices_of_table(self, schema: str, table: str) -> Dict[str, Index]:
         with self.__connection.cursor() as cursor:
             query = """
             SELECT INDEX_NAME, 
@@ -142,9 +143,10 @@ class MetaDataProvider:
             """
             cursor.execute(query.format(schema, table))
             result = cursor.fetchall()
-            return [Index(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11]) for i in result]
+            return {i[0]: Index(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11])
+                    for i in result}
 
-    def __get_views_of_schema(self, schema: str) -> List[View]:
+    def __get_views_of_schema(self, schema: str) -> Dict[str, View]:
         with self.__connection.cursor() as cursor:
             query = """
             SELECT TABLE_SCHEMA,
@@ -161,11 +163,11 @@ class MetaDataProvider:
             """
             cursor.execute(query.format(schema))
             result = cursor.fetchall()
-            return [View(ViewMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8])) for i in result]
+            return {i[1]: View(ViewMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8])) for i in result}
 
-    def __get_routines_of_schema(self, schema: str) -> List[Routine]:
+    def __get_routines_of_schema(self, schema: str) -> Dict[str, Routine]:
         routines = self.__get_meta_data_of_routines(schema)
-        return [self.__map_routine(r) for r in routines]
+        return {r.name: self.__map_routine(r) for r in routines}
 
     def __map_routine(self, meta_data: RoutineMetaData) -> Routine:
         parameters = self.__get_parameters_of_routines(meta_data.schema, meta_data.name)
@@ -206,11 +208,11 @@ class MetaDataProvider:
             """
             cursor.execute(query.format(schema))
             result = cursor.fetchall()
-            return [RoutineMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11], i[12],
-                                    i[13], i[14], i[15], i[16], i[17], i[18], i[19], i[20], i[21], i[22], i[23], i[24],
-                                    i[25], i[26]) for i in result]
+            return [RoutineMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11],
+                                    i[12], i[13], i[14], i[15], i[16], i[17], i[18], i[19], i[20], i[21], i[22],
+                                    i[23], i[24], i[25], i[26]) for i in result]
 
-    def __get_parameters_of_routines(self, schema: str, routine: str) -> List[RoutineParameter]:
+    def __get_parameters_of_routines(self, schema: str, routine: str) -> Dict[str, RoutineParameter]:
         with self.__connection.cursor() as cursor:
             query = """
             SELECT PARAMETER_NAME, 
@@ -230,8 +232,8 @@ class MetaDataProvider:
             """
             cursor.execute(query.format(schema, routine))
             result = cursor.fetchall()
-            return [RoutineParameter(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11])
-                    for i in result]
+            return {i[0]: RoutineParameter(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11])
+                    for i in result}
 
 
 class MetaDataProviderFactory:

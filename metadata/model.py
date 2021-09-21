@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict
 import json
 
 
@@ -78,7 +78,7 @@ class RoutineMetaData(MetaData):
 
 
 class Routine(MetaData):
-    def __init__(self, meta_data: RoutineMetaData, parameters: List[RoutineParameter]):
+    def __init__(self, meta_data: RoutineMetaData, parameters: Dict[str, RoutineParameter]):
         MetaData.__init__(self)
         self.meta_data = meta_data
         self.parameters = parameters
@@ -214,8 +214,8 @@ class TableMetaData(MetaData):
 
 
 class Table(MetaData):
-    def __init__(self, meta_data: TableMetaData, columns: List[ColumnMetaData], key_column_usages: List[KeyColumnUsage],
-                 referential_constraints: List[ReferentialConstraint], indices: List[Index]):
+    def __init__(self, meta_data: TableMetaData, columns: Dict[str, ColumnMetaData], key_column_usages: Dict[str, KeyColumnUsage],
+                 referential_constraints: Dict[str, ReferentialConstraint], indices: Dict[str, Index]):
         MetaData.__init__(self)
         self.meta_data = meta_data
         self.columns = columns
@@ -239,8 +239,8 @@ class SchemaMetaData(MetaData):
 
 
 class Schema(MetaData):
-    def __init__(self, meta_data: SchemaMetaData, tables: List[Table], views: List[View],
-                 routines: List[Routine]):
+    def __init__(self, meta_data: SchemaMetaData, tables: Dict[str, Table], views: Dict[str, View],
+                 routines: Dict[str, Routine]):
         MetaData.__init__(self)
         self.meta_data = meta_data
         self.tables = tables
