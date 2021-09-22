@@ -139,7 +139,6 @@ class MetaDataProvider:
                    SEQ_IN_INDEX, 
                    COLUMN_NAME, 
                    `COLLATION`, 
-                   `CARDINALITY`, 
                    SUB_PART, 
                    PACKED, 
                    NULLABLE, 
@@ -151,7 +150,7 @@ class MetaDataProvider:
             """
             cursor.execute(query.format(schema, table))
             result = cursor.fetchall()
-            return {i[2]: Index(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11], i[12], i[13])
+            return {i[2]: Index(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11], i[12])
                     for i in result}
 
     def __get_views_of_schema(self, schema: str) -> Dict[str, View]:
@@ -253,7 +252,7 @@ class MetaDataProviderFactory:
 
     def __enter__(self) -> MetaDataProvider:
         self.__connection = connect(host=self.params.host, port=self.params.port, user=self.params.username,
-                                    password=self.params.password)
+                                    password=self.params.password, database="information_schema")
         return MetaDataProvider(self.__connection)
 
     def __exit__(self, t, value, tb):

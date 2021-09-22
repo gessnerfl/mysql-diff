@@ -154,8 +154,8 @@ class ReferentialConstraint(MetaData):
 
 class Index(MetaData):
     def __init__(self, table_schema: str, table_name: str, index_name: str, non_unique: str, seq_in_index: str,
-                 column_name: str, collation: str, cardinality: str, sub_part: str, packed: str, nullable: str,
-                 index_type: str, comment: str, index_comment: str):
+                 column_name: str, collation: str, sub_part: str, packed: str, nullable: str, index_type: str,
+                 comment: str, index_comment: str):
         MetaData.__init__(self)
         self.table_schema = table_schema
         self.table_name = table_name
@@ -164,7 +164,6 @@ class Index(MetaData):
         self.seq_in_index = seq_in_index
         self.column_name = column_name
         self.collation = collation
-        self.cardinality = cardinality
         self.sub_part = sub_part
         self.packed = packed
         self.nullable = nullable
