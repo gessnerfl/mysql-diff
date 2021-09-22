@@ -65,7 +65,9 @@ class MetaDataProvider:
     def __get_columns_of_table(self, schema: str, table: str) -> Dict[str, ColumnMetaData]:
         with self.__connection.cursor() as cursor:
             query = """
-            SELECT COLUMN_NAME, 
+            SELECT TABLE_SCHEMA, 
+                   TABLE_NAME, 
+                   COLUMN_NAME, 
                    ORDINAL_POSITION, 
                    COLUMN_DEFAULT, 
                    IS_NULLABLE, 
@@ -88,13 +90,15 @@ class MetaDataProvider:
             """
             cursor.execute(query.format(schema, table))
             result = cursor.fetchall()
-            return {i[0]: ColumnMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11],
-                                         i[12], i[13], i[14], i[15], i[16], i[17]) for i in result}
+            return {i[2]: ColumnMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11],
+                                         i[12], i[13], i[14], i[15], i[16], i[17], i[18], i[19]) for i in result}
 
     def __get_key_column_usage_of_table(self, schema: str, table: str) -> Dict[str, KeyColumnUsage]:
         with self.__connection.cursor() as cursor:
             query = """
-            SELECT COLUMN_NAME, 
+            SELECT TABLE_SCHEMA, 
+                   TABLE_NAME, 
+                   COLUMN_NAME, 
                    ORDINAL_POSITION, 
                    POSITION_IN_UNIQUE_CONSTRAINT, 
                    REFERENCED_TABLE_SCHEMA, 
@@ -105,28 +109,32 @@ class MetaDataProvider:
             """
             cursor.execute(query.format(schema, table))
             result = cursor.fetchall()
-            return {i[0]: KeyColumnUsage(i[0], i[1], i[2], i[3], i[4], i[5]) for i in result}
+            return {i[2]: KeyColumnUsage(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7]) for i in result}
 
     def __get_referential_constraints_of_table(self, schema: str, table: str) -> Dict[str, ReferentialConstraint]:
         with self.__connection.cursor() as cursor:
             query = """
-            SELECT CONSTRAINT_NAME, 
+            SELECT CONSTRAINT_SCHEMA, 
+                   CONSTRAINT_NAME, 
                    UNIQUE_CONSTRAINT_NAME, 
                    MATCH_OPTION, 
                    UPDATE_RULE, 
                    DELETE_RULE, 
+                   TABLE_NAME, 
                    REFERENCED_TABLE_NAME  
             FROM information_schema.REFERENTIAL_CONSTRAINTS
             WHERE CONSTRAINT_SCHEMA = '{}' AND TABLE_NAME = '{}';
             """
             cursor.execute(query.format(schema, table))
             result = cursor.fetchall()
-            return {i[0]: ReferentialConstraint(i[0], i[1], i[2], i[3], i[4], i[5]) for i in result}
+            return {i[1]: ReferentialConstraint(i[0], i[1], i[2], i[3], i[4], i[5], i[5], i[7]) for i in result}
 
     def __get_indices_of_table(self, schema: str, table: str) -> Dict[str, Index]:
         with self.__connection.cursor() as cursor:
             query = """
-            SELECT INDEX_NAME, 
+            SELECT TABLE_SCHEMA, 
+                   TABLE_NAME, 
+                   INDEX_NAME, 
                    NON_UNIQUE, 
                    SEQ_IN_INDEX, 
                    COLUMN_NAME, 
@@ -143,7 +151,7 @@ class MetaDataProvider:
             """
             cursor.execute(query.format(schema, table))
             result = cursor.fetchall()
-            return {i[0]: Index(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11])
+            return {i[2]: Index(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11], i[12], i[13])
                     for i in result}
 
     def __get_views_of_schema(self, schema: str) -> Dict[str, View]:
@@ -215,7 +223,9 @@ class MetaDataProvider:
     def __get_parameters_of_routines(self, schema: str, routine: str) -> Dict[str, RoutineParameter]:
         with self.__connection.cursor() as cursor:
             query = """
-            SELECT PARAMETER_NAME, 
+            SELECT SPECIFIC_SCHEMA, 
+                   SPECIFIC_NAME,
+                   PARAMETER_NAME, 
                    ORDINAL_POSITION, 
                    PARAMETER_MODE, 
                    DATA_TYPE, 
@@ -232,7 +242,8 @@ class MetaDataProvider:
             """
             cursor.execute(query.format(schema, routine))
             result = cursor.fetchall()
-            return {i[0]: RoutineParameter(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11])
+            return {i[2]: RoutineParameter(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11],
+                                           i[12], i[13])
                     for i in result}
 
 

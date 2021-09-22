@@ -15,10 +15,13 @@ class MetaData:
 
 
 class RoutineParameter(MetaData):
-    def __init__(self, parameter_name: str, ordinal_position: str, parameter_mode: str, data_type: str,
-                 character_maximum_length: str, character_octet_length: str, numeric_precision: str, numeric_scale: str,
-                 datetime_precision: str, character_set_name: str, collation_name: str, dtd_identifier: str):
+    def __init__(self, routine_name: str, routine_schema: str, parameter_name: str, ordinal_position: str,
+                 parameter_mode: str, data_type: str, character_maximum_length: str, character_octet_length: str,
+                 numeric_precision: str, numeric_scale: str, datetime_precision: str, character_set_name: str,
+                 collation_name: str, dtd_identifier: str):
         MetaData.__init__(self)
+        self.routine_schema = routine_schema
+        self.routine_name = routine_name
         self.parameter_name = parameter_name
         self.ordinal_position = ordinal_position
         self.parameter_mode = parameter_mode
@@ -115,9 +118,12 @@ class View(MetaData):
 
 
 class KeyColumnUsage(MetaData):
-    def __init__(self, column_name: str, ordinal_position: str, position_in_unique_constraint: str,
-                 referenced_table_schema: str, referenced_table_name: str, referenced_column_name: str):
+    def __init__(self, table_schema: str, table_name: str, column_name: str, ordinal_position: str,
+                 position_in_unique_constraint: str, referenced_table_schema: str, referenced_table_name: str,
+                 referenced_column_name: str):
         MetaData.__init__(self)
+        self.table_schema = table_schema
+        self.table_name = table_name
         self.column_name = column_name
         self.ordinal_position = ordinal_position
         self.position_in_unique_constraint = position_in_unique_constraint
@@ -130,9 +136,11 @@ class KeyColumnUsage(MetaData):
 
 
 class ReferentialConstraint(MetaData):
-    def __init__(self, constraint_name: str, unique_constraint_name: str, match_option: str,
-                 update_rule: str, delete_rule: str, referenced_table_name: str):
+    def __init__(self, constraint_schema: str, constraint_name: str, unique_constraint_name: str,
+                 match_option: str, update_rule: str, delete_rule: str, table_name: str, referenced_table_name: str):
         MetaData.__init__(self)
+        self.constraint_schema = constraint_schema
+        self.table_name = table_name
         self.constraint_name = constraint_name
         self.unique_constraint_name = unique_constraint_name
         self.match_option = match_option
@@ -145,10 +153,12 @@ class ReferentialConstraint(MetaData):
 
 
 class Index(MetaData):
-    def __init__(self, index_name: str, non_unique: str, seq_in_index: str, column_name: str, collation: str,
-                 cardinality: str, sub_part: str, packed: str, nullable: str, index_type: str, comment: str,
-                 index_comment: str):
+    def __init__(self, table_schema: str, table_name: str, index_name: str, non_unique: str, seq_in_index: str,
+                 column_name: str, collation: str, cardinality: str, sub_part: str, packed: str, nullable: str,
+                 index_type: str, comment: str, index_comment: str):
         MetaData.__init__(self)
+        self.table_schema = table_schema
+        self.table_name = table_name
         self.index_name = index_name
         self.non_unique = non_unique
         self.seq_in_index = seq_in_index
@@ -167,11 +177,14 @@ class Index(MetaData):
 
 
 class ColumnMetaData(MetaData):
-    def __init__(self, column_name: str, ordinal_position: str, column_default: str, is_nullable: str, data_type: str,
-                 character_maximum_length: str, character_octet_length: str, numeric_precision: str, numeric_scale: str,
-                 datetime_precision: str, character_set_name: str, collation_name: str, column_type: str,
-                 column_key: str, extra: str, privileges: str, column_comment: str, generation_expression: str):
+    def __init__(self, table_schema: str, table_name: str, column_name: str, ordinal_position: str, column_default: str,
+                 is_nullable: str, data_type: str, character_maximum_length: str, character_octet_length: str,
+                 numeric_precision: str, numeric_scale: str, datetime_precision: str, character_set_name: str,
+                 collation_name: str, column_type: str, column_key: str, extra: str, privileges: str,
+                 column_comment: str, generation_expression: str):
         MetaData.__init__(self)
+        self.table_schema = table_schema
+        self.table_name = table_name
         self.column_name = column_name
         self.ordinal_position = ordinal_position
         self.column_default = column_default
@@ -214,7 +227,8 @@ class TableMetaData(MetaData):
 
 
 class Table(MetaData):
-    def __init__(self, meta_data: TableMetaData, columns: Dict[str, ColumnMetaData], key_column_usages: Dict[str, KeyColumnUsage],
+    def __init__(self, meta_data: TableMetaData, columns: Dict[str, ColumnMetaData],
+                 key_column_usages: Dict[str, KeyColumnUsage],
                  referential_constraints: Dict[str, ReferentialConstraint], indices: Dict[str, Index]):
         MetaData.__init__(self)
         self.meta_data = meta_data
