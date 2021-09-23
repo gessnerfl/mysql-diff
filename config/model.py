@@ -7,11 +7,13 @@ class InvalidConfigurationException(Exception):
 
 
 class DbConnectionParameters:
-    def __init__(self, host: str, port: int, username: str, password: str):
+    def __init__(self, name: str, host: str, port: int, username: str, password: str):
+        self.__check_param("name", name)
         self.__check_param("host", host)
         self.__check_port("port", port)
         self.__check_param("username", username)
         self.__check_param("password", password)
+        self.name = name
         self.host = host
         self.port = port
         self.username = username
@@ -47,7 +49,7 @@ class Exclusions:
 class SchemaMappings:
     def __init__(self, left_to_right_mappings: Dict[str, str]):
         self.left_to_right_mappings = left_to_right_mappings
-        self.right_to_left_mappings = { left_to_right_mappings[k]: k for k in left_to_right_mappings}
+        self.right_to_left_mappings = {left_to_right_mappings[k]: k for k in left_to_right_mappings}
 
 
 class Configuration:

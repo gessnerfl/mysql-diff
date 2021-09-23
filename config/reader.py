@@ -38,8 +38,10 @@ def read_configuration(filepath: str) -> Configuration:
         databases = d['databases']
         left = databases['left']
         right = databases['right']
-        left_param = DbConnectionParameters(left["hostname"], left["port"], left["username"], left["password"])
-        right_param = DbConnectionParameters(right["hostname"], right["port"], right["username"], right["password"])
+        left_param = DbConnectionParameters(left["name"], left["hostname"], left["port"], left["username"],
+                                            left["password"])
+        right_param = DbConnectionParameters(right["name"], right["hostname"], right["port"], right["username"],
+                                             right["password"])
 
         exclusions = __parse_exclusions(d)
         schema_mappings = __parse_schema_mappings(d)

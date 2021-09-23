@@ -163,6 +163,6 @@ class SchemaDiff:
             deep_diff = DeepDiff(left, right, exclude_paths=exclusions)
             pretty = deep_diff.pretty()
             if pretty != "":
-                diff_message = "Meta data differs:\n{}".format(pretty)
+                diff_message = "Meta data differs:\n{}".format(deep_diff)
                 diff = Diff(asset_name, asset_type, diff_message)
                 self.database_diff.append_diff(diff)
