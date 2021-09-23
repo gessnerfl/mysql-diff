@@ -8,6 +8,12 @@ def __get_exclusion(exclusions, field: str) -> List[str]:
     return []
 
 
+def __parse_schema_mappings(d) -> SchemaMappings:
+    if 'schema_mappings' in d:
+        return SchemaMappings(d["schema_mappings"])
+    return SchemaMappings({})
+
+
 def __parse_exclusions(d) -> Exclusions:
     if 'exclusions' in d:
         exclusions = d['exclusions']
@@ -36,5 +42,6 @@ def read_configuration(filepath: str) -> Configuration:
         right_param = DbConnectionParameters(right["hostname"], right["port"], right["username"], right["password"])
 
         exclusions = __parse_exclusions(d)
+        schema_mappings = __parse_schema_mappings(d)
 
-        return Configuration(left_param, right_param, exclusions)
+        return Configuration(left_param, right_param, exclusions, schema_mappings)

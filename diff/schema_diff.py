@@ -4,7 +4,7 @@ from typing import Dict, Any, TypeVar, Callable, NoReturn, List
 from metadata.model import Schema, Table, View, Routine, RoutineParameter, ColumnMetaData, KeyColumnUsage, \
     ReferentialConstraint, Index
 from .model import Diff
-from config.model import Exclusions
+from config.model import Exclusions, SchemaMappings
 
 ASSET_TYPE_SCHEMA = "Schema"
 ASSET_TYPE_TABLE = "Table"
@@ -27,19 +27,19 @@ def table_name(table: Table) -> str:
 
 
 def column_name(column: ColumnMetaData) -> str:
-    return "{} - {} - {}".format(column.table_schema, column.table_name, column.column_name)
+    return "{} - {} - {}".format(column.schema, column.table_name, column.column_name)
 
 
 def key_column_usage_name(k: KeyColumnUsage) -> str:
-    return "{} - {} - {}".format(k.table_schema, k.table_name, k.column_name)
+    return "{} - {} - {}".format(k.schema, k.table_name, k.column_name)
 
 
 def referential_constraint_name(c: ReferentialConstraint) -> str:
-    return "{} - {} - {}".format(c.constraint_schema, c.table_name, c.constraint_name)
+    return "{} - {} - {}".format(c.schema, c.table_name, c.constraint_name)
 
 
 def index_name(c: Index) -> str:
-    return "{} - {} - {}".format(c.table_schema, c.table_name, c.index_name)
+    return "{} - {} - {}".format(c.schema, c.table_name, c.index_name)
 
 
 def view_name(view: View) -> str:
@@ -51,21 +51,27 @@ def routine_name(routine: Routine) -> str:
 
 
 def routine_param_name(param: RoutineParameter) -> str:
-    return "{} - {} - {}".format(param.routine_schema, param.routine_name, param.parameter_name)
+    return "{} - {} - {}".format(param.schema, param.routine_name, param.parameter_name)
 
 
 def map_excluded_fields(excluded_fields: List[str]) -> List[str]:
     if excluded_fields is None:
         return []
-    return ["root['{}']".format(e) for e in excluded_fields]
+    return [format_excluded_field(e) for e in excluded_fields]
+
+
+def format_excluded_field(name):
+    return "root['{}']".format(name)
 
 
 class SchemaDiff:
-    def __init__(self, left: Dict[str, Schema], right: Dict[str, Schema], exclusions: Exclusions):
+    def __init__(self, left: Dict[str, Schema], right: Dict[str, Schema], exclusions: Exclusions,
+                 schema_mappings: SchemaMappings):
         self.left = left
         self.right = right
         self.database_diff = DatabaseDiffs()
         self.exclusions = exclusions
+        self.schema_mappings = schema_mappings
 
     def diff(self) -> DatabaseDiffs:
         self.__check_diff_of_assets(ASSET_TYPE_SCHEMA, schema_name, self.left, self.right, self.__process_schema)
@@ -121,24 +127,41 @@ class SchemaDiff:
     def __check_diff_of_assets(self, asset_type: str, asset_name_fn: Callable[[T], str], left: Dict[str, T],
                                right: Dict[str, T], comparator: Callable[[T, T], NoReturn]):
         for k in left:
-            if k in right:
-                comparator(left[k], right[k])
+            right_key = self.__get_right_asset_name(asset_type, k)
+            if right_key in right:
+                comparator(left[k], right[right_key])
             else:
                 asset_name = asset_name_fn(left[k])
                 diff = Diff(asset_name, asset_type, "{} is not present on right side".format(k))
                 self.database_diff.append_diff(diff)
 
         for k in right:
-            if k not in left:
+            left_key = self.__get_left_asset_name(asset_type, k)
+            if left_key not in left:
                 asset_name = asset_name_fn(right[k])
                 diff = Diff(asset_name, asset_type, "{} is not present on left side".format(k))
                 self.database_diff.append_diff(diff)
+
+    def __get_right_asset_name(self, asset_type: str, left_key: str):
+        if asset_type == ASSET_TYPE_SCHEMA:
+            if left_key in self.schema_mappings.left_to_right_mappings:
+                return self.schema_mappings.left_to_right_mappings[left_key]
+        return left_key
+
+    def __get_left_asset_name(self, asset_type: str, right_key: str):
+        if asset_type == ASSET_TYPE_SCHEMA:
+            if right_key in self.schema_mappings.right_to_left_mappings:
+                return self.schema_mappings.right_to_left_mappings[right_key]
+        return right_key
 
     def __check_meta_data_diff(self, asset_type: str, asset_name: str, left: Dict[str, Any], right: Dict[str, Any],
                                excluded_fields: List[str]):
         if left != right:
             exclusions = map_excluded_fields(excluded_fields)
-            pretty = DeepDiff(left, right, exclude_paths=exclusions).pretty()
+            # to properly handle schema mappings, the field schema must be excluded
+            exclusions.append(format_excluded_field("schema"))
+            deep_diff = DeepDiff(left, right, exclude_paths=exclusions)
+            pretty = deep_diff.pretty()
             if pretty != "":
                 diff_message = "Meta data differs:\n{}".format(pretty)
                 diff = Diff(asset_name, asset_type, diff_message)

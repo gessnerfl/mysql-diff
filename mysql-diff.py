@@ -47,7 +47,7 @@ def run_application():
         if args.right_out_path is not None:
             write_meta_data(args.right_out_path, right)
 
-    diffs = diff(left, right, config.exclusions)
+    diffs = diff(left, right, config.exclusions, config.schema_mappings)
     write_output(args.out, diffs)
 
 

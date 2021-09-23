@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 
 
 class InvalidConfigurationException(Exception):
@@ -44,8 +44,16 @@ class Exclusions:
         self.view_fields = view_fields
 
 
+class SchemaMappings:
+    def __init__(self, left_to_right_mappings: Dict[str, str]):
+        self.left_to_right_mappings = left_to_right_mappings
+        self.right_to_left_mappings = { left_to_right_mappings[k]: k for k in left_to_right_mappings}
+
+
 class Configuration:
-    def __init__(self, left: DbConnectionParameters, right: DbConnectionParameters, exclusions: Exclusions):
+    def __init__(self, left: DbConnectionParameters, right: DbConnectionParameters, exclusions: Exclusions,
+                 schema_mappings: SchemaMappings):
         self.left = left
         self.right = right
         self.exclusions = exclusions
+        self.schema_mappings = schema_mappings
