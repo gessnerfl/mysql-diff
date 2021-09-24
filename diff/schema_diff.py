@@ -4,7 +4,7 @@ from typing import Dict, Any, TypeVar, Callable, NoReturn, List
 from metadata.model import Schema, Table, View, Routine, RoutineParameter, ColumnMetaData, KeyColumnUsage, \
     ReferentialConstraint, Index
 from .model import Diff
-from config.model import Exclusions, SchemaMappings
+from config.model import Exclusions, SchemaMappings, FieldExclusion
 
 ASSET_TYPE_SCHEMA = "Schema"
 ASSET_TYPE_TABLE = "Table"
@@ -15,6 +15,10 @@ ASSET_TYPE_INDEX = "Index"
 ASSET_TYPE_ROUTINE = "Routine"
 ASSET_TYPE_ROUTINE_PARAMETER = "Routine-Parameter"
 ASSET_TYPE_VIEW = "View"
+
+ASSET_TYPE_VIEW = "View"
+
+CHANGE_VALUE_FIELD = "values_changed"
 
 T = TypeVar('T')
 
@@ -54,14 +58,30 @@ def routine_param_name(param: RoutineParameter) -> str:
     return "{} - {} - {}".format(param.schema, param.routine_name, param.parameter_name)
 
 
-def map_excluded_fields(excluded_fields: List[str]) -> List[str]:
+def map_excluded_fields(excluded_fields: List[FieldExclusion]) -> List[str]:
     if excluded_fields is None:
         return []
-    return [format_excluded_field(e) for e in excluded_fields]
+    return [format_excluded_field(e.field) for e in filter(lambda e: e.is_exclude_always(), excluded_fields)]
 
 
 def format_excluded_field(name):
     return "root['{}']".format(name)
+
+
+def filter_value_exclusions_from_diff(diff_dict, field_exclusions: List[FieldExclusion]):
+    result = diff_dict
+    for f in filter(lambda e: not e.is_exclude_always(), field_exclusions):
+        key = format_excluded_field(f.field)
+        if CHANGE_VALUE_FIELD in result and key in result[CHANGE_VALUE_FIELD] and \
+                "old_value" in result[CHANGE_VALUE_FIELD][key] and "new_value" in result[CHANGE_VALUE_FIELD][key] and \
+                result[CHANGE_VALUE_FIELD][key]["old_value"] == f.left_value and \
+                result[CHANGE_VALUE_FIELD][key]["new_value"] == f.right_value:
+            del result[CHANGE_VALUE_FIELD][key]
+
+    if CHANGE_VALUE_FIELD in result and len(result[CHANGE_VALUE_FIELD]) == 0:
+        del result[CHANGE_VALUE_FIELD]
+
+    return result
 
 
 class SchemaDiff:
@@ -116,13 +136,13 @@ class SchemaDiff:
                                          left.parameters, right.parameters, self.exclusions.routine_parameter_fields)
 
     def __check_diff_of_leaf_assets(self, asset_type: str, asset_name_fn: Callable[[T], str], left: Dict[str, T],
-                                    right: Dict[str, T], excluded_fields: List[str]):
+                                    right: Dict[str, T], field_exclusions: List[FieldExclusion]):
         self.__check_diff_of_assets(asset_type, asset_name_fn, left, right,
                                     lambda l, r: self.__check_meta_data_diff(asset_type,
                                                                              asset_name_fn(l),
                                                                              l.to_dict(),
                                                                              r.to_dict(),
-                                                                             excluded_fields))
+                                                                             field_exclusions))
 
     def __check_diff_of_assets(self, asset_type: str, asset_name_fn: Callable[[T], str], left: Dict[str, T],
                                right: Dict[str, T], comparator: Callable[[T, T], NoReturn]):
@@ -155,14 +175,15 @@ class SchemaDiff:
         return right_key
 
     def __check_meta_data_diff(self, asset_type: str, asset_name: str, left: Dict[str, Any], right: Dict[str, Any],
-                               excluded_fields: List[str]):
+                               field_exclusions: List[FieldExclusion]):
         if left != right:
-            exclusions = map_excluded_fields(excluded_fields)
+            exclusions = map_excluded_fields(field_exclusions)
             # to properly handle schema mappings, the field schema must be excluded
             exclusions.append(format_excluded_field("schema"))
             deep_diff = DeepDiff(left, right, exclude_paths=exclusions)
-            pretty = deep_diff.pretty()
-            if pretty != "":
-                diff_message = "Meta data differs:\n{}".format(deep_diff)
+            diff_dict = filter_value_exclusions_from_diff(deep_diff, field_exclusions)
+            if len(diff_dict) > 0:
+                diff_message = "Meta data differs:\n{}".format(diff_dict.pretty())
                 diff = Diff(asset_name, asset_type, diff_message)
                 self.database_diff.append_diff(diff)
+

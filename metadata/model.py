@@ -119,7 +119,7 @@ class View(MetaData):
 
 class KeyColumnUsage(MetaData):
     def __init__(self, schema: str, table_name: str, column_name: str, ordinal_position: str,
-                 position_in_unique_constraint: str, referenced_table_schema: str, referenced_table_name: str,
+                 position_in_unique_constraint: str, referenced_table_name: str,
                  referenced_column_name: str):
         MetaData.__init__(self)
         self.schema = schema
@@ -127,7 +127,6 @@ class KeyColumnUsage(MetaData):
         self.column_name = column_name
         self.ordinal_position = ordinal_position
         self.position_in_unique_constraint = position_in_unique_constraint
-        self.referenced_table_schema = referenced_table_schema
         self.referenced_table_name = referenced_table_name
         self.referenced_column_name = referenced_column_name
 
@@ -208,7 +207,7 @@ class ColumnMetaData(MetaData):
 
 
 class TableMetaData(MetaData):
-    def __init__(self, schema: str, name: str, engine: str, version: str, row_format: str, auto_increment: str,
+    def __init__(self, schema: str, name: str, engine: str, version: str, row_format: str,
                  table_collation: str, create_option: str, table_comment: str):
         MetaData.__init__(self)
         self.schema = schema
@@ -216,7 +215,6 @@ class TableMetaData(MetaData):
         self.engine = engine
         self.version = version
         self.row_format = row_format
-        self.auto_increment = auto_increment
         self.table_collation = table_collation
         self.create_option = create_option
         self.table_comment = table_comment

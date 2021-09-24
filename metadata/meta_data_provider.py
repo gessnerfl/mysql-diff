@@ -51,7 +51,6 @@ class MetaDataProvider:
                    ENGINE, 
                    VERSION, 
                    ROW_FORMAT, 
-                   AUTO_INCREMENT, 
                    TABLE_COLLATION, 
                    CREATE_OPTIONS, 
                    TABLE_COMMENT 
@@ -60,7 +59,7 @@ class MetaDataProvider:
             """
             cursor.execute(query.format(schema))
             result = cursor.fetchall()
-            return [TableMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8]) for i in result]
+            return [TableMetaData(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7]) for i in result]
 
     def __get_columns_of_table(self, schema: str, table: str) -> Dict[str, ColumnMetaData]:
         with self.__connection.cursor() as cursor:
@@ -101,7 +100,6 @@ class MetaDataProvider:
                    COLUMN_NAME, 
                    ORDINAL_POSITION, 
                    POSITION_IN_UNIQUE_CONSTRAINT, 
-                   REFERENCED_TABLE_SCHEMA, 
                    REFERENCED_TABLE_NAME, 
                    REFERENCED_COLUMN_NAME 
             FROM information_schema.KEY_COLUMN_USAGE 
@@ -109,7 +107,7 @@ class MetaDataProvider:
             """
             cursor.execute(query.format(schema, table))
             result = cursor.fetchall()
-            return {i[2]: KeyColumnUsage(i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7]) for i in result}
+            return {i[2]: KeyColumnUsage(i[0], i[1], i[2], i[3], i[4], i[5], i[6]) for i in result}
 
     def __get_referential_constraints_of_table(self, schema: str, table: str) -> Dict[str, ReferentialConstraint]:
         with self.__connection.cursor() as cursor:

@@ -30,11 +30,22 @@ class DbConnectionParameters:
                 "Required connection parameter port is not valid or missing".format(name))
 
 
+class FieldExclusion:
+    def __init__(self, field: str, left_value, right_value):
+        self.field = field
+        self.left_value = left_value
+        self.right_value = right_value
+
+    def is_exclude_always(self) -> bool:
+        return self.left_value is None
+
+
 class Exclusions:
-    def __init__(self, schema_fields: List[str], table_fields: List[str], column_fields: List[str],
-                 key_column_usage_fields: List[str], referential_constraint_fields: List[str],
-                 index_fields: List[str], routine_fields: List[str], routine_parameter_fields: List[str],
-                 view_fields: List[str]):
+    def __init__(self, schema_fields: List[FieldExclusion], table_fields: List[FieldExclusion],
+                 column_fields: List[FieldExclusion], key_column_usage_fields: List[FieldExclusion],
+                 referential_constraint_fields: List[FieldExclusion], index_fields: List[FieldExclusion],
+                 routine_fields: List[FieldExclusion], routine_parameter_fields: List[FieldExclusion],
+                 view_fields: List[FieldExclusion]):
         self.schema_fields = schema_fields
         self.table_fields = table_fields
         self.column_fields = column_fields
