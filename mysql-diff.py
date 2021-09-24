@@ -35,12 +35,12 @@ def get_output_file_path(param, config: Configuration) -> str:
 def run_application():
     args_parser = argparse.ArgumentParser(allow_abbrev=False, prog='mysql-diff',
                                           description='Determine structural differences between two MySQL database')
-    args_parser.add_argument('-c', '--config', help='The yaml configuration file for the db setup',
+    args_parser.add_argument('-c', '--config', help='the yaml configuration file required for the execution',
                              type=str, required=True)
-    args_parser.add_argument('-o', '--out', help='The file path of the output file', type=str, required=False)
-    args_parser.add_argument('--left-out-path', help='The file path to store the meta data of the left side', type=str,
+    args_parser.add_argument('-o', '--out', help='the file path of the output file', type=str, required=False)
+    args_parser.add_argument('--left-out-path', help='the file path to store the meta data of the left side', type=str,
                              required=False)
-    args_parser.add_argument('--right-out-path', help='The file path to store the meta data of the right side',
+    args_parser.add_argument('--right-out-path', help='the file path to store the meta data of the right side',
                              type=str, required=False)
     args = args_parser.parse_args()
 
